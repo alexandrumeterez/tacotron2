@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+from torch.autograd import Variable
 
 
 # TODO: UNDERSTAND!!!!!!
@@ -222,6 +223,14 @@ class Decoder(nn.Module):
         probability that the output sequence has completed.
         """
         self.stop_out = nn.Linear(in_features=1024 + 256, out_features=1)
+
+    def init_hidden(self, batch_size):
+        return (nn.Parameter(torch.zeros(self.num_layers, batch_size, self.hidden_size)).cuda(),
+                nn.Parameter(torch.zeros(self.num_layers, batch_size, self.hidden_size)).cuda())
+
+    def init_mask(self, encoder_out):
+        seq1_len, batch_size, _ = encoder_out.size()
+        return Variable(encoder_out.data.new(1, batch_size, seq1_len).fill_(0))
 
     def forward(self, previous_out, encoder_out, decoder_hidden=None, mask=None):
         """
