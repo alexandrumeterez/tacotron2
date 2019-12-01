@@ -1,8 +1,7 @@
 from datasets.speechdataset import LJSpeechDataset
-from utils.utils import show_spectrogram
+from utils.vocab import Vocabulary
 
 ds = LJSpeechDataset('data/LJSpeech-1.1')
-text, spectrogram = ds[0]
-print(spectrogram.shape)
-text, spectrogram = ds[10]
-print(spectrogram.shape)
+v = Vocabulary()
+all_strings = [x[0] for x in ds]
+v.build_vocab(all_strings)
