@@ -5,11 +5,11 @@ import random
 
 
 class Tacotron2(nn.Module):
-    def __init__(self, vocab, maxlen, teacher_forcing_ratio=1.0):
+    def __init__(self, vocab, maxlen, device, teacher_forcing_ratio=1.0):
         super().__init__()
         self.vocab = vocab
-        self.encoder = Encoder(self.vocab.vocab_size)
-        self.decoder = Decoder()
+        self.encoder = Encoder(self.vocab.n_chars)
+        self.decoder = Decoder(device)
         self.teacher_forcing_ratio = teacher_forcing_ratio
         self.maxlen = maxlen
 
@@ -32,8 +32,8 @@ class Tacotron2(nn.Module):
         for t in range(self.maxlen):
             output, stop_token, hidden, mask = self.decoder(output, encoder_out, hidden, mask)
             outputs[t] = output
-            stop_tokens[t] = stop_token
+            stop_tokens[t] = stop_token.squeeze()
             masks[t] = mask.data
             if use_teacher_forcing and random.random() < self.teacher_forcing_ratio:
-                output = self.targets[t].unsqueeze(0)
+                output = targets[t].unsqueeze(0)
         return outputs, stop_tokens.transpose(1, 0), masks.permute(1, 2, 0)  # batch, src, trg

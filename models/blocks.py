@@ -130,9 +130,9 @@ class Encoder(nn.Module):
             See: https://pytorch.org/docs/stable/nn.html#torch.nn.Conv1d for the formula
         """
         self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=512, padding_idx=0)
-        self.conv1 = ConvBlock(in_channels=vocab_size, out_channels=vocab_size, kernel_size=5, padding=2)
-        self.conv2 = ConvBlock(in_channels=vocab_size, out_channels=vocab_size, kernel_size=5, padding=2)
-        self.conv3 = ConvBlock(in_channels=vocab_size, out_channels=vocab_size, kernel_size=5, padding=2)
+        self.conv1 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
+        self.conv2 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
+        self.conv3 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
 
         """
             From the paper:
@@ -141,7 +141,7 @@ class Encoder(nn.Module):
                 in each direction) to generate the encoded features.
         """
 
-        self.rnn = nn.LSTM(input_size=vocab_size, hidden_size=256, bidirectional=True, dropout=0.1)
+        self.rnn = nn.LSTM(input_size=512, hidden_size=256, bidirectional=True)
 
     def forward(self, input):
         # input
@@ -184,8 +184,9 @@ class Decoder(nn.Module):
         frame at a time.
     """
 
-    def __init__(self):
+    def __init__(self, device):
         super().__init__()
+        self.device = device
         """
         The prediction from the previous time step is first
         passed through a small pre-net containing 2 fully connected layers
@@ -225,8 +226,8 @@ class Decoder(nn.Module):
         self.stop_out = nn.Linear(in_features=1024 + 256, out_features=1)
 
     def init_hidden(self, batch_size):
-        return (nn.Parameter(torch.zeros(self.num_layers, batch_size, self.hidden_size)).cuda(),
-                nn.Parameter(torch.zeros(self.num_layers, batch_size, self.hidden_size)).cuda())
+        return (nn.Parameter(torch.zeros(2, batch_size, 1024)).to(self.device),
+                nn.Parameter(torch.zeros(2, batch_size, 1024)).to(self.device))
 
     def init_mask(self, encoder_out):
         seq1_len, batch_size, _ = encoder_out.size()

@@ -36,6 +36,7 @@ def wav_to_spectrogram(wav, sample_rate=SAMPLE_RATE,
 class LJSpeechDataset(Dataset):
     def __init__(self, path, force_make_spectrograms=False):
         self.path = path
+        self.vocab = None
         file = os.path.join(path, 'metadata.csv')
         self.metadata = pd.read_csv(file, sep='|', names=['wav', 'short', 'text'], usecols=[0, 2]).dropna()
         self.metadata['length'] = self.metadata['wav'].apply(
@@ -51,6 +52,9 @@ class LJSpeechDataset(Dataset):
             audio, _ = load_wav(wav_file)
             spectrogram = wav_to_spectrogram(audio)
             np.save(os.path.join(self.path, 'spectrograms', wav + '.npy'), spectrogram)
+
+    def convert_text2seq(self):
+        self.metadata['text'] = self.metadata['text'].apply(lambda x: self.vocab.text2seq(x))
 
     def __getitem__(self, item):
         text = self.metadata.iloc[item]['text']
