@@ -4,6 +4,13 @@ class Vocabulary:
         self.id_to_char = {0: '<pad>', '<unk>': 1, '<eos>': 2}
         self.n_chars = 3
 
+    def build_fake_vocab(self):
+        chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'\"(),-.:;? ';
+        for c in chars:
+            self.char_to_id[c] = self.n_chars
+            self.id_to_char[self.n_chars] = c
+            self.n_chars += 1
+
     def build_vocab(self, sentences):
         long_string = ''.join(sentences)
         for c in long_string:

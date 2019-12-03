@@ -64,7 +64,10 @@ def main():
     dataset = LJSpeechDataset('data/LJSpeech-1.1')
     sentences = [x[0] for x in dataset]
     vocab = Vocabulary()
-    vocab.build_vocab(sentences)
+    # vocab.build_vocab(sentences)
+
+    vocab.build_fake_vocab()
+
     dataset.vocab = vocab
     dataset.convert_text2seq()
 
