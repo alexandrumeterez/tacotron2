@@ -72,7 +72,7 @@ def main():
     dataset.convert_text2seq()
 
     maxlen = max([x[1].shape[0] for x in dataset])
-    model = Tacotron2(vocab, maxlen, device='cuda', teacher_forcing_ratio=0.7)
+    model = Tacotron2(vocab, device='cuda', teacher_forcing_ratio=0.7)
     model.to('cuda')
     optimizer = Adam(model.parameters(), lr=1e-4, weight_decay=1e-6,
                      betas=(0.9, 0.999), eps=1e-6)
