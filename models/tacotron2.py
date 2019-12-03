@@ -5,13 +5,12 @@ import random
 
 
 class Tacotron2(nn.Module):
-    def __init__(self, vocab, maxlen, device, teacher_forcing_ratio=1.0):
+    def __init__(self, vocab, device, teacher_forcing_ratio=1.0):
         super().__init__()
         self.vocab = vocab
         self.encoder = Encoder(self.vocab.n_chars)
         self.decoder = Decoder(device)
         self.teacher_forcing_ratio = teacher_forcing_ratio
-        self.maxlen = maxlen
 
     def forward(self, text, targets=None):
         encoder_out = self.encoder(text)
@@ -20,16 +19,18 @@ class Tacotron2(nn.Module):
         # altfel, e in test
         use_teacher_forcing = (targets is not None)
 
+        maxlen = len(targets)
+
         seq1_len, batch_size, _ = encoder_out.size()
-        outputs = Variable(encoder_out.data.new(self.maxlen, batch_size, 80))
-        stop_tokens = Variable(outputs.data.new(self.maxlen, batch_size))
-        masks = torch.zeros(self.maxlen, batch_size, seq1_len)
+        outputs = Variable(encoder_out.data.new(maxlen, batch_size, 80))
+        stop_tokens = Variable(outputs.data.new(maxlen, batch_size))
+        masks = torch.zeros(maxlen, batch_size, seq1_len)
 
         output = Variable(outputs.data.new(1, batch_size, 80).fill_(0))
         mask = self.decoder.init_mask(encoder_out)
         hidden = self.decoder.init_hidden(batch_size)
 
-        for t in range(self.maxlen):
+        for t in range(maxlen):
             output, stop_token, hidden, mask = self.decoder(output, encoder_out, hidden, mask)
             outputs[t] = output
             stop_tokens[t] = stop_token.squeeze()
