@@ -43,7 +43,7 @@ def pad2d(seq, max_len, dim=80, pad_value=0.0):
 
 def train(model, optimizer, dataset, batch_size, device):
     model.train()
-    loader = DataLoader(dataset, collate_fn=collate_fn, num_workers=4, batch_size=batch_size)
+    loader = DataLoader(dataset, collate_fn=collate_fn, num_workers=1, batch_size=batch_size)
     pbar = tqdm(loader, total=len(loader), unit=' batches')
     curr_loss = 0.0
     for idx, (text, audio, text_lengths, audio_lengths) in enumerate(pbar):
@@ -62,7 +62,7 @@ def train(model, optimizer, dataset, batch_size, device):
 
 def main():
     dataset = LJSpeechDataset('data/LJSpeech-1.1')
-    sentences = [x[0] for x in dataset]
+    # sentences = [x[0] for x in dataset]
     vocab = Vocabulary()
     # vocab.build_vocab(sentences)
 
@@ -72,10 +72,12 @@ def main():
     dataset.convert_text2seq()
 
     maxlen = max([x[1].shape[0] for x in dataset])
-    model = Tacotron2(vocab, maxlen, device='cpu', teacher_forcing_ratio=0.7)
+    model = Tacotron2(vocab, maxlen, device='cuda', teacher_forcing_ratio=0.7)
+    model.to('cuda')
     optimizer = Adam(model.parameters(), lr=1e-4, weight_decay=1e-6,
                      betas=(0.9, 0.999), eps=1e-6)
-    train(model, optimizer, dataset, 128, 'cpu')
+    BATCH_SIZE = 4
+    train(model, optimizer, dataset, BATCH_SIZE, 'cuda')
 
 
 if __name__ == '__main__':
