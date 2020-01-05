@@ -223,7 +223,7 @@ class Decoder(nn.Module):
         to a scalar and passed through a sigmoid activation to predict the
         probability that the output sequence has completed.
         """
-        self.stop_out = nn.Linear(in_features=1024 + 256, out_features=1)
+        # self.stop_out = nn.Linear(in_features=1024 + 256, out_features=1)
 
     def init_hidden(self, batch_size):
         return (nn.Parameter(torch.zeros(2, batch_size, 1024)).to(self.device),
@@ -243,7 +243,6 @@ class Decoder(nn.Module):
         rnn_input = torch.cat([previous_out, context], dim=2)
         rnn_out, decoder_hidden = self.rnn(rnn_input, decoder_hidden)
         spec_frame = self.spec_out(torch.cat([rnn_out, context], dim=2))  # predict next audio frame
-        stop_token = self.stop_out(torch.cat([rnn_out, context], dim=2))  # predict stop token
         spec_frame = spec_frame.permute(1, 0, 2)
         spec_frame = spec_frame + self.postnet(spec_frame)  # add residual
-        return spec_frame.permute(1, 0, 2), stop_token, decoder_hidden, mask
+        return spec_frame.permute(1, 0, 2), decoder_hidden, mask

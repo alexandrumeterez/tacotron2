@@ -8,6 +8,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import torch.nn.functional as F
 from models.tacotron2 import Tacotron2
+import librosa
+import librosa.display
+import matplotlib.pyplot as plt
 
 
 def collate_fn(batch):
@@ -47,17 +50,36 @@ def train(model, optimizer, dataset, batch_size, device):
     pbar = tqdm(loader, total=len(loader), unit=' batches')
     curr_loss = 0.0
     for idx, (text, audio, text_lengths, audio_lengths) in enumerate(pbar):
+        print(idx)
         text = Variable(text).to(device)
         targets = Variable(audio, requires_grad=False).to(device)
-        outputs, stop_tokens, attn = model(text, targets)
+        outputs, attn = model(text, targets)
         spec_loss = F.mse_loss(outputs, targets)
-        # stop_loss = F.binary_cross_entropy_with_logits(stop_tokens, stop_targets)
         loss = spec_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         curr_loss += loss.item()
     print('Loss: {}'.format(curr_loss))
+
+
+def evaluate(model, text, vocab):
+    model.eval()
+    text = torch.LongTensor(vocab.text2seq(text)).unsqueeze(0)
+    outputs, attn = model(text, None)
+
+    return outputs.squeeze(), attn
+
+
+def get_waveform(model, text, vocab):
+    outputs, attn = evaluate(model, text, vocab)
+    outputs = outputs.detach().numpy()
+    S = librosa.core.db_to_power(outputs)
+    S_ = librosa.feature.inverse.mel_to_stft(S, n_fft=1024, power=0.2)
+    librosa.display.specshow(S_, fmax=8000)
+    plt.show()
+    y = librosa.griffinlim(S_, 50)
+    return y
 
 
 def main():
@@ -70,14 +92,15 @@ def main():
 
     dataset.vocab = vocab
     dataset.convert_text2seq()
-
-    maxlen = max([x[1].shape[0] for x in dataset])
-    model = Tacotron2(vocab, device='cuda', teacher_forcing_ratio=0.7)
-    model.to('cuda')
+    DEVICE = 'cpu'
+    model = Tacotron2(vocab, device=DEVICE, teacher_forcing_ratio=0.7)
+    model.to(DEVICE)
     optimizer = Adam(model.parameters(), lr=1e-4, weight_decay=1e-6,
                      betas=(0.9, 0.999), eps=1e-6)
-    BATCH_SIZE = 4
-    train(model, optimizer, dataset, BATCH_SIZE, 'cuda')
+    BATCH_SIZE = 1
+    # train(model, optimizer, dataset, BATCH_SIZE, DEVICE)
+    # outputs, attn = evaluate(model, "I like apples.", vocab)
+    y = get_waveform(model, "I like apples.", vocab)
 
 
 if __name__ == '__main__':

@@ -18,12 +18,13 @@ class Tacotron2(nn.Module):
         # daca targets nu e None, atunci e in training si folosesc teacher forcing
         # altfel, e in test
         use_teacher_forcing = (targets is not None)
-
-        maxlen = len(targets)
+        maxlen = 30
+        if targets is not None:
+            maxlen = len(targets)
 
         seq1_len, batch_size, _ = encoder_out.size()
         outputs = Variable(encoder_out.data.new(maxlen, batch_size, 80))
-        stop_tokens = Variable(outputs.data.new(maxlen, batch_size))
+        # stop_tokens = Variable(outputs.data.new(maxlen, batch_size))
         masks = torch.zeros(maxlen, batch_size, seq1_len)
 
         output = Variable(outputs.data.new(1, batch_size, 80).fill_(0))
@@ -31,10 +32,10 @@ class Tacotron2(nn.Module):
         hidden = self.decoder.init_hidden(batch_size)
 
         for t in range(maxlen):
-            output, stop_token, hidden, mask = self.decoder(output, encoder_out, hidden, mask)
+            output, hidden, mask = self.decoder(output, encoder_out, hidden, mask)
             outputs[t] = output
-            stop_tokens[t] = stop_token.squeeze()
+            # stop_tokens[t] = stop_token.squeeze()
             masks[t] = mask.data
             if use_teacher_forcing and random.random() < self.teacher_forcing_ratio:
                 output = targets[t].unsqueeze(0)
-        return outputs, stop_tokens.transpose(1, 0), masks.permute(1, 2, 0)  # batch, src, trg
+        return outputs, masks.permute(1, 2, 0)  # batch, src, trg
