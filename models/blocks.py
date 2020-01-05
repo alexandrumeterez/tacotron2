@@ -2,9 +2,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from torch.autograd import Variable
+import copy
 
 
-# TODO: UNDERSTAND!!!!!!
+def layer_list(n_layers, layer):
+    layers = [copy.deepcopy(layer) for _ in range(n_layers)]
+    return nn.Sequential(*layers)
+
 class LocationAttention(nn.Module):
     """
     Calculates context vector based on previous decoder hidden state (query vector),
@@ -102,18 +106,21 @@ class PostNet(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = ConvBlock(in_channels=1, out_channels=512, kernel_size=5, padding=2, activation='tanh')
-        self.conv2 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2, activation='tanh')
-        self.conv3 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2, activation='tanh')
-        self.conv4 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2, activation='tanh')
 
-        self.conv5 = nn.Conv1d(in_channels=512, out_channels=1, kernel_size=5, padding=2)
+        self.conv2 = layer_list(3, ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2,
+                                             activation='tanh'))
+        # self.conv2 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2, activation='tanh')
+        # self.conv3 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2, activation='tanh')
+        # self.conv4 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2, activation='tanh')
+
+        self.conv3 = nn.Conv1d(in_channels=512, out_channels=1, kernel_size=5, padding=2)
 
     def forward(self, input):
         out = self.conv1(input)
         out = self.conv2(out)
         out = self.conv3(out)
-        out = self.conv4(out)
-        out = self.conv5(out)
+        # out = self.conv4(out)
+        # out = self.conv5(out)
         return out
 
 
@@ -130,10 +137,10 @@ class Encoder(nn.Module):
             See: https://pytorch.org/docs/stable/nn.html#torch.nn.Conv1d for the formula
         """
         self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=512, padding_idx=0)
-        self.conv1 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
-        self.conv2 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
-        self.conv3 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
-
+        # self.conv1 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
+        # self.conv2 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
+        # self.conv3 = ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2)
+        self.conv = layer_list(3, ConvBlock(in_channels=512, out_channels=512, kernel_size=5, padding=2))
         """
             From the paper:
                 The output of the final convolutional layer is passed into a
@@ -153,14 +160,15 @@ class Encoder(nn.Module):
         out = out.permute(0, 2, 1)
         # (batch_size, vocab_size, seq_len)
 
-        out = self.conv1(out)
-        # (batch_size, vocab_size, seq_len)
-
-        out = self.conv2(out)
-        # (batch_size, vocab_size, seq_len)
-
-        out = self.conv3(out)
-        # (batch_size, vocab_size, seq_len)
+        # out = self.conv1(out)
+        # # (batch_size, vocab_size, seq_len)
+        #
+        # out = self.conv2(out)
+        # # (batch_size, vocab_size, seq_len)
+        #
+        # out = self.conv3(out)
+        # # (batch_size, vocab_size, seq_len)
+        out = self.conv(out)
 
         out = out.permute(2, 0, 1)
         # (seq_len, batch_size, vocab_size)
